@@ -14,6 +14,7 @@ type Config struct {
 	SSHUser          string
 	SSHHost          string
 	SSHPort          int
+	OutputFile       string
 }
 
 // TableInfo stores information about a table's structure

@@ -2,7 +2,6 @@ package config
 
 import (
 	"fmt"
-	"os"
 
 	"github.com/robmartinson/pg2lite/internal/database"
 	"github.com/spf13/cobra"
@@ -25,22 +24,6 @@ the data from a PostgreSQL database to a SQLite database.`,
 structure and optionally copy all data to the new SQLite database.`,
 		RunE: runMigrate,
 	}
-
-	validateCmd = &cobra.Command{
-		Use:   "validate",
-		Short: "Validate database connection and configuration",
-		Long: `Test the database connection and configuration settings
-without performing any migration.`,
-		RunE: runValidate,
-	}
-
-	versionCmd = &cobra.Command{
-		Use:   "version",
-		Short: "Print the version number",
-		Run: func(cmd *cobra.Command, args []string) {
-			fmt.Println("PostgreSQL to SQLite migrator v1.0")
-		},
-	}
 )
 
 // Execute adds all child commands to the root command and sets flags appropriately
@@ -50,10 +33,6 @@ func Execute() error {
 
 func init() {
 	cobra.OnInitialize(initConfig)
-
-	// Global flags
-	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.pgmigrate.yaml)")
-
 	// Database connection flags
 	rootCmd.PersistentFlags().String("pg", "", "PostgreSQL connection string (optional)")
 	rootCmd.PersistentFlags().String("host", "localhost", "PostgreSQL host")
@@ -68,14 +47,15 @@ func init() {
 	rootCmd.PersistentFlags().String("sshhost", "", "SSH host")
 	rootCmd.PersistentFlags().Int("sshport", 22, "SSH port")
 
+	// Output flags
+	rootCmd.PersistentFlags().String("output", "output.db", "SQLite output file")
+
 	// Migrate command specific flags
 	migrateCmd.Flags().String("sqlite", "output.db", "SQLite output file")
 	migrateCmd.Flags().Bool("with-data", false, "Include data in migration")
 
 	// Add commands
 	rootCmd.AddCommand(migrateCmd)
-	rootCmd.AddCommand(validateCmd)
-	rootCmd.AddCommand(versionCmd)
 
 	// Bind all flags to viper
 	viper.BindPFlags(rootCmd.PersistentFlags())
@@ -83,25 +63,14 @@ func init() {
 }
 
 func initConfig() {
-	if cfgFile != "" {
-		viper.SetConfigFile(cfgFile)
-	} else {
-		home, err := os.UserHomeDir()
-		if err != nil {
-			fmt.Println(err)
-			os.Exit(1)
-		}
 
-		viper.AddConfigPath(home)
-		viper.SetConfigName(".pgmigrate")
-	}
-
-	viper.SetEnvPrefix("PGMIGRATE")
+	viper.SetEnvPrefix("PG2LITE")
 	viper.AutomaticEnv()
 
 	if err := viper.ReadInConfig(); err == nil {
 		fmt.Println("Using config file:", viper.ConfigFileUsed())
 	}
+
 }
 
 func getConfig() database.Config {
@@ -116,12 +85,13 @@ func getConfig() database.Config {
 		SSHUser:          viper.GetString("sshuser"),
 		SSHHost:          viper.GetString("sshhost"),
 		SSHPort:          viper.GetInt("sshport"),
+		OutputFile:       viper.GetString("output"),
 	}
 }
 
 func runMigrate(cmd *cobra.Command, args []string) error {
 	config := getConfig()
-	sqliteFile := viper.GetString("sqlite")
+	sqliteFile := config.OutputFile
 	withData := viper.GetBool("with-data")
 
 	migrator, err := database.NewMigrator(config)
@@ -131,17 +101,4 @@ func runMigrate(cmd *cobra.Command, args []string) error {
 	defer migrator.Close()
 
 	return migrator.Migrate(sqliteFile, withData)
-}
-
-func runValidate(cmd *cobra.Command, args []string) error {
-	config := getConfig()
-
-	migrator, err := database.NewMigrator(config)
-	if err != nil {
-		return fmt.Errorf("failed to create migrator: %w", err)
-	}
-	defer migrator.Close()
-
-	fmt.Println("Configuration is valid and database is accessible")
-	return nil
 }

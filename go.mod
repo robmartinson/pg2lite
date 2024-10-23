@@ -3,6 +3,7 @@ module github.com/robmartinson/pg2lite
 go 1.23.2
 
 require (
+	github.com/joho/godotenv v1.5.1
 	github.com/lib/pq v1.10.9
 	github.com/mattn/go-sqlite3 v1.14.24
 	github.com/spf13/cobra v1.8.1
