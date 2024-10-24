@@ -11,7 +11,7 @@ import (
 )
 
 // Migrate performs the migration from PostgreSQL to SQLite
-func (m *Migrator) Migrate(sqliteFile string, withData bool) error {
+func (m *Migrator) Migrate(sqliteFile string, excludedTables []string, withData bool) error {
 	// Remove existing SQLite file if it exists
 	os.Remove(sqliteFile)
 
@@ -26,6 +26,26 @@ func (m *Migrator) Migrate(sqliteFile string, withData bool) error {
 	tables, err := m.GetTables()
 	if err != nil {
 		return fmt.Errorf("failed to get tables: %w", err)
+	}
+
+	// if there are excluded tables, remove them from the list
+	if len(excludedTables) > 0 {
+		var filteredTables []TableInfo
+		for _, table := range tables {
+			for _, excludedTable := range excludedTables {
+				if table.Name == excludedTable {
+					continue
+				}
+			}
+			filteredTables = append(filteredTables, table)
+
+		}
+		tables = filteredTables
+	}
+
+	// if there are no tables to migrate, return
+	if len(tables) == 0 {
+		return fmt.Errorf("no tables to migrate")
 	}
 
 	// Begin transaction for schema creation

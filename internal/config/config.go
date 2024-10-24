@@ -53,6 +53,7 @@ func init() {
 	// Migrate command specific flags
 	migrateCmd.Flags().String("sqlite", "output.db", "SQLite output file")
 	migrateCmd.Flags().Bool("with-data", false, "Include data in migration")
+	migrateCmd.Flags().StringArray("exclude", []string{}, "Tables to exclude from migration, all others will be included")
 
 	// Add commands
 	rootCmd.AddCommand(migrateCmd)
@@ -90,9 +91,13 @@ func getConfig() database.Config {
 }
 
 func runMigrate(cmd *cobra.Command, args []string) error {
+
 	config := getConfig()
 	sqliteFile := config.OutputFile
+
 	withData := viper.GetBool("with-data")
+
+	excludedTables := viper.GetStringSlice("exclude")
 
 	migrator, err := database.NewMigrator(config)
 	if err != nil {
@@ -100,5 +105,5 @@ func runMigrate(cmd *cobra.Command, args []string) error {
 	}
 	defer migrator.Close()
 
-	return migrator.Migrate(sqliteFile, withData)
+	return migrator.Migrate(sqliteFile, excludedTables, withData)
 }
