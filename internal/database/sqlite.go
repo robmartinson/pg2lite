@@ -6,7 +6,8 @@ import (
 	"os"
 	"strings"
 
-	_ "github.com/mattn/go-sqlite3"
+	// get the modernc.org/sqlite driver
+	_ "modernc.org/sqlite"
 )
 
 // Migrate performs the migration from PostgreSQL to SQLite
@@ -15,16 +16,11 @@ func (m *Migrator) Migrate(sqliteFile string, withData bool) error {
 	os.Remove(sqliteFile)
 
 	// Connect to SQLite
-	destDB, err := sql.Open("sqlite3", sqliteFile)
+	destDB, err := sql.Open("sqlite", sqliteFile)
 	if err != nil {
 		return fmt.Errorf("failed to create SQLite database: %w", err)
 	}
 	defer destDB.Close()
-
-	// Enable foreign keys
-	if _, err := destDB.Exec("PRAGMA foreign_keys = ON"); err != nil {
-		return fmt.Errorf("failed to enable foreign keys: %w", err)
-	}
 
 	// Get all tables
 	tables, err := m.GetTables()
