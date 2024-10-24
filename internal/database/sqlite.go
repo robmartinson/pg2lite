@@ -114,13 +114,12 @@ func (m *Migrator) createTable(tx *sql.Tx, table TableInfo) error {
 			return ""
 		}())
 
-	//log.Printf("Creating table: %s\n", table.Name)
-	//log.Printf("Query: %s\n", query)
-
 	// Execute the create table query
 	if _, err := tx.Exec(query); err != nil {
 		return fmt.Errorf("failed to create table: %w", err)
 	}
+
+	// @TODO: Create indexes needs additional work and testing
 
 	// Create indexes for the table
 	// if err := m.createIndexes(tx, table.Name); err != nil {
